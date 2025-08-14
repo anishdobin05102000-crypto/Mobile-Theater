@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Mobile Theater — Chrome Watch Parties</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#071423; --muted:#9fb0c8; --gold:#d4af37; --green:#0a7a3d; --card:rgba(255,255,255,0.03); --text:#eaf6ff;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,var(--bg),#02131a);color:var(--text)}
+.container{max-width:980px;margin:0 auto;padding:18px;min-height:100vh;display:flex;flex-direction:column}
+.header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.brand{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--green));display:flex;align-items:center;justify-content:center}
+.title{font-weight:800}
+.sub{color:var(--muted);font-size:13px}
+
+/* pages */
+.page{display:none}
+.page.active{display:block}
+.card{background:var(--card);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){ .grid2{grid-template-columns:1fr} }
+
+/* inputs & buttons */
+.input{width:100%;padding:12px;border-radius:10px;border:0;background:rgba(255,255,255,0.02);color:var(--text);font-size:15px}
+.btn{border:0;border-radius:12px;padding:12px 14px;font-weight:700;cursor:pointer}
+.btn.primary{background:linear-gradient(90deg,var(--green),var(--gold));color:#07121a}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--text)}
+.small{padding:8px 10px;border-radius:10px}
+
+/* watch layout */
+.watchWrap{position:sticky;top:0;padding-bottom:12px;background:linear-gradient(180deg,var(--bg),transparent);z-index:6}
+.video{width:100%;height:56vh;max-height:560px;background:#000;border-radius:12px;display:block}
+.controls{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.chat{margin-top:12px;height:36vh;max-height:480px;overflow:auto;padding:10px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border:1px solid rgba(255,255,255,0.02)}
+.chatMsg{margin-bottom:8px}
+.chatSys{color:var(--muted);font-size:13px;margin-bottom:8px}
+.chatRow{display:flex;gap:8px;margin-top:10px;align-items:center}
+.err{color:#ffb3b3;background:rgba(255,0,0,0.06);padding:8px;border-radius:8px;margin-top:8px}
+.note{color:var(--muted);font-size:13px}
+.footer{margin-top:auto;padding:10px;text-align:center;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="brand" aria-hidden>
+      <svg viewBox="0 0 64 64" width="32" height="32"><rect x="2" y="6" width="36" height="52" rx="6" fill="#031926"/><rect x="6" y="10" width="28" height="44" rx="4" fill="#052b3b"/><g transform="translate(42,20)"><circle cx="8" cy="8" r="8" fill="#ffd166"/><circle cx="8" cy="8" r="4.5" fill="#063b2b"/></g></svg>
+    </div>
+    <div>
+      <div class="title">Mobile Theater</div>
+      <div class="sub">Chrome watch parties — private rooms</div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="home" class="page active">
+    <div class="card">
+      <div class="grid2">
+        <button id="createBtn" class="btn primary">Create Room</button>
+        <button id="joinBtn" class="btn ghost">Join Room</button>
+      </div>
+      <div style="margin-top:12px" class="note">Host: use Chrome (desktop or Android Chrome) for reliable streaming. Guests: Chrome recommended. Passkey is required.</div>
+    </div>
+  </div>
+
+  <!-- CREATE -->
+  <div id="create" class="page">
+    <div class="card">
+      <div style="font-weight:700">Create Private Room</div>
+      <div class="note" style="margin-top:6px">Room ID and passkey are required. Host selects a local video file. Guests will not select files.</div>
+      <div style="height:8px"></div>
+      <input id="createRoomId" class="input" placeholder="Room ID (e.g. FAMILY1)" />
+      <div style="height:8px"></div>
+      <input id="createPass" class="input" placeholder="Passkey (required)" />
+      <div style="height:10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="selectVideo" class="btn primary">Select Local Video</button>
+        <button id="backToHomeFromCreate" class="btn ghost">Back</button>
+      </div>
+      <input id="videoFileInput" type="file" accept="video/mp4,video/webm,video/ogg,video/*" style="display:none">
+      <div id="hostSupportNote" class="note" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- JOIN -->
+  <div id="join" class="page">
+    <div class="card">
+      <div style="font-weight:700">Join Private Room</div>
+      <div class="note" style="margin-top:6px">Enter Room ID & Passkey provided by host. Guests will receive host stream automatically if host supports streaming.</div>
+      <div style="height:8px"></div>
+      <input id="joinRoomId" class="input" placeholder="Room ID" />
+      <div style="height:8px"></div>
+      <input id="joinPass" class="input" placeholder="Passkey" />
+      <div style="height:10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="joinRoomBtn" class="btn primary">Join Room</button>
+        <button id="backToHomeFromJoin" class="btn ghost">Back</button>
+      </div>
+      <div id="joinSupportNote" class="note" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- WATCH -->
+  <div id="watch" class="page">
+    <div class="watchWrap">
+      <video id="player" class="video" playsinline webkit-playsinline controls></video>
+      <div class="controls">
+        <button id="hostPlayToggle" class="btn ghost small">Play/Pause (host)</button>
+        <button id="guestRequestSync" class="btn ghost small">Request Sync</button>
+        <div style="flex:1"></div>
+        <div id="roomTag" class="note">—</div>
+        <button id="shareInvite" class="btn ghost small">Share Invite</button>
+        <button id="leaveRoom" class="btn ghost small">Leave</button>
+      </div>
+    </div>
+
+    <div id="chat" class="chat" aria-live="polite"></div>
+
+    <div class="chatRow">
+      <input id="chatInput" class="input" placeholder="Type a message..." />
+      <button id="sendChat" class="btn primary" style="width:110px">Send</button>
+    </div>
+
+    <div id="errorBox" class="err" style="display:none"></div>
+  </div>
+
+  <div class="footer">Mobile Theater — private • ephemeral</div>
+</div>
+
+<!-- Ably realtime library -->
+<script src="https://cdn.ably.io/lib/ably.min-1.js"></script>
+
+<script>
+/* ------------------------------ CONFIG ------------------------------ */
+/* Ably API key (you provided) */
+const ABLY_API_KEY = "UFek4A.O70Vrg:rXqL9seBPAZZB2g2CIE29NUvaiEeEhx3fb6oKQN5efw";
+/* -------------------------------------------------------------------- */
+
+const $ = s => document.querySelector(s);
+const showPage = id => { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); };
+
+/* UI elements */
+const createBtn = $('#createBtn'), joinBtn = $('#joinBtn');
+const selectVideoBtn = $('#selectVideo'), backCreate = $('#backToHomeFromCreate');
+const backJoin = $('#backToHomeFromJoin'), videoFileInput = $('#videoFileInput');
+const createRoomId = $('#createRoomId'), createPass = $('#createPass');
+const joinRoomId = $('#joinRoomId'), joinPass = $('#joinPass'), joinRoomBtn = $('#joinRoomBtn');
+const hostSupportNote = $('#hostSupportNote'), joinSupportNote = $('#joinSupportNote');
+
+const player = $('#player');
+const hostPlayToggle = $('#hostPlayToggle'), guestRequestSync = $('#guestRequestSync');
+const shareInvite = $('#shareInvite'), leaveRoom = $('#leaveRoom');
+const chat = $('#chat'), chatInput = $('#chatInput'), sendChat = $('#sendChat');
+const roomTag = $('#roomTag'), errorBox = $('#errorBox');
+
+let ably = null, channel = null;
+let clientId = 'u_' + Math.random().toString(36).slice(2,9);
+let isHost = false, roomId = null, passkey = null;
+let hostStream = null;      // captureStream from host video element
+let localFileUrl = null;    // object URL of chosen file
+const pcs = {};            // peerId -> RTCPeerConnection (host -> many guests; guest -> one PC)
+
+/* Boot (initial page already shown) */
+createBtn.onclick = () => showPage('create');
+joinBtn.onclick = () => showPage('join');
+backCreate.onclick = () => showPage('home');
+backJoin.onclick = () => showPage('home');
+
+/* Ably init */
+function initAbly(){
+  if(ably) return ably;
+  try{
+    ably = new Ably.Realtime({ key: ABLY_API_KEY, clientId });
+    return ably;
+  }catch(e){
+    showError('Ably init failed: ' + (e && e.message));
+    throw e;
+  }
+}
+
+/* ---------- CREATE (host) ---------- */
+selectVideoBtn.onclick = ()=>{
+  const rid = (createRoomId.value||'').trim();
+  const pk = (createPass.value||'').trim();
+  if(!rid) return alert('Enter Room ID');
+  if(!pk) return alert('Passkey is required');
+  isHost = true; roomId = rid; passkey = pk;
+  videoFileInput.click();
+};
+
+videoFileInput.addEventListener('change', async (ev)=>{
+  const f = ev.target.files[0];
+  if(!f) return;
+  if(!f.type.startsWith('video/')) return alert('Choose a video file (mp4/webm/ogg)');
+  localFileUrl = URL.createObjectURL(f);
+  player.src = localFileUrl;
+  player.muted = true;
+  try{ await player.play().catch(()=>{}); }catch(_){}
+  // try captureStream
+  hostStream = (typeof player.captureStream === 'function') ? player.captureStream() : null;
+  connectAsHost(roomId);
+  roomTag.textContent = 'Room • ' + roomId;
+  showPage('watch');
+  if(!hostStream){
+    hostSupportNote.textContent = 'Warning: captureStream() not available in this browser. Guests will not receive live video. Use desktop/Android Chrome for the host.';
+  } else { hostSupportNote.textContent = ''; }
+});
+
+/* ---------- JOIN (guest) ---------- */
+joinRoomBtn.onclick = ()=>{
+  const rid = (joinRoomId.value||'').trim();
+  const pk = (joinPass.value||'').trim();
+  if(!rid) return alert('Enter Room ID');
+  if(!pk) return alert('Passkey is required');
+  isHost = false; roomId = rid; passkey = pk;
+  connectAsGuest(roomId);
+  roomTag.textContent = 'Room • ' + roomId;
+  showPage('watch');
+  joinSupportNote.textContent = 'Joined room. Waiting for host stream...';
+};
+
+/* ---------- Ably connect / channel setup ---------- */
+function connectAsHost(rid){
+  initAbly();
+  channel = ably.channels.get('mobile-theater:' + rid);
+
+  // announce meta with passkey (client-side check)
+  channel.publish('meta', { host: clientId, pass: passkey });
+
+  // presence
+  channel.presence.enter({ role: 'host', id: clientId }, err => { if(err) console.warn('presence enter failed', err); });
+
+  // subscribe to signals, chat, playback requests, presence
+  channel.subscribe('signal', onSignal);
+  channel.subscribe('chat', m => onChat(m.data));
+  channel.subscribe('playback', m => onPlayback(m.data));
+  channel.subscribe('playback-request', m => onPlaybackRequest(m.data));
+
+  channel.presence.subscribe('enter', p => {
+    if(!p || !p.clientId || p.clientId === clientId) return;
+    // create PC for new guest and offer
+    createPeerForGuest(p.clientId, true);
+  });
+
+  // existing presence (if any)
+  channel.presence.get((err, members) => {
+    if(members && members.length) members.forEach(m => { if(m.clientId !== clientId) createPeerForGuest(m.clientId, true); });
+  });
+
+  subscribePlayerEvents();
+}
+
+function connectAsGuest(rid){
+  initAbly();
+  channel = ably.channels.get('mobile-theater:' + rid);
+
+  // enter presence as guest
+  channel.presence.enter({ role: 'guest', id: clientId }, err => { if(err) console.warn('presence enter failed', err); });
+
+  // subscribe to messages
+  channel.subscribe('meta', m => {
+    const meta = m.data || {};
+    if(meta.pass && meta.pass !== passkey){
+      showError('Passkey mismatch — wrong passkey');
+    }
+  });
+  channel.subscribe('signal', onSignal);
+  channel.subscribe('chat', m => onChat(m.data));
+  channel.subscribe('playback', m => onPlayback(m.data));
+  channel.subscribe('playback-request', m => onPlaybackRequest(m.data));
+
+  // request host meta (non-essential)
+  channel.publish('meta-request', { from: clientId });
+
+  subscribePlayerEvents();
+}
+
+/* ---------- Peer / WebRTC signaling ---------- */
+function createPeerForGuest(guestId, doOffer){
+  if(pcs[guestId]) return pcs[guestId];
+  const pc = new RTCPeerConnection({ iceServers:[{urls:'stun:stun.l.google.com:19302'}] });
+  pcs[guestId] = pc;
+
+  // host adds captured media tracks
+  if(isHost && hostStream){
+    hostStream.getTracks().forEach(t => pc.addTrack(t, hostStream));
+  }
+
+  pc.onicecandidate = e => {
+    if(e.candidate && channel) channel.publish('signal', { to: guestId, from: clientId, candidate: e.candidate.toJSON() });
+  };
+
+  pc.ontrack = ev => {
+    // ignore - host doesn't expect guest tracks in this chat-only build
+  };
+
+  if(doOffer){
+    pc.createOffer().then(offer => pc.setLocalDescription(offer)).then(()=> {
+      channel.publish('signal', { to: guestId, from: clientId, sdp: pc.localDescription });
+    }).catch(e => showError('Offer failed: ' + (e && e.message)));
+  }
+  return pc;
+}
+
+function ensureGuestPC(hostId){
+  if(pcs[hostId]) return pcs[hostId];
+  const pc = new RTCPeerConnection({ iceServers:[{urls:'stun:stun.l.google.com:19302'}] });
+  pcs[hostId] = pc;
+
+  pc.onicecandidate = e => {
+    if(e.candidate && channel) channel.publish('signal', { to: hostId, from: clientId, candidate: e.candidate.toJSON() });
+  };
+
+  pc.ontrack = ev => {
+    // host streams video -> attach to player
+    const s = ev.streams[0];
+    if(s){
+      player.srcObject = s;
+      addSys('Receiving host stream');
+    }
+  };
+  return pc;
+}
+
+/* handle incoming signaling messages */
+async function onSignal(msg){
+  const d = msg.data;
+  if(!d) return;
+  if(d.to && d.to !== clientId) return; // not for me
+  const from = d.from;
+  if(d.sdp){
+    // sdp offer or answer
+    if(isHost){
+      // host receives answer from guest
+      const pc = pcs[from];
+      if(pc){
+        try{ await pc.setRemoteDescription(new RTCSessionDescription(d.sdp)); }catch(e){ console.warn('setRemoteDesc error', e); }
+      }
+    } else {
+      // guest receives offer from host -> ensure pc and answer
+      let pc = ensureGuestPC(from);
+      try{
+        await pc.setRemoteDescription(new RTCSessionDescription(d.sdp));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        channel.publish('signal', { to: from, from: clientId, sdp: pc.localDescription });
+      }catch(e){ showError('Signaling error: ' + (e && e.message)); }
+    }
+  } else if(d.candidate){
+    const pc = pcs[from];
+    if(pc){
+      try{ await pc.addIceCandidate(new RTCIceCandidate(d.candidate)); }catch(e){ console.warn('ICE add error', e); }
+    }
+  }
+}
+
+/* ---------- Chat ---------- */
+sendChat.onclick = () => {
+  const txt = (chatInput.value||'').trim();
+  if(!txt) return;
+  chatInput.value = '';
+  addChat('You', txt);
+  if(channel) channel.publish('chat', { from: clientId, text: txt, ts: Date.now() });
+};
+function onChat(d){
+  if(!d) return;
+  addChat(d.from || 'Guest', d.text || '');
+}
+function addChat(who, text){
+  const el = document.createElement('div'); el.className='chatMsg';
+  el.innerHTML = '<strong>' + escapeHtml(who) + '</strong>: ' + escapeHtml(text);
+  chat.appendChild(el); chat.scrollTop = chat.scrollHeight;
+}
+function addSys(t){ const el = document.createElement('div'); el.className='chatSys'; el.textContent = t; chat.appendChild(el); chat.scrollTop = chat.scrollHeight; }
+
+/* ---------- Playback sync ---------- */
+function subscribePlayerEvents(){
+  player.addEventListener('play', ()=> { if(isHost && channel) publishPlayback('play', player.currentTime); });
+  player.addEventListener('pause', ()=> { if(isHost && channel) publishPlayback('pause', player.currentTime); });
+  player.addEventListener('seeked', ()=> { if(isHost && channel) publishPlayback('seek', player.currentTime); });
+}
+
+function publishPlayback(action, time){
+  if(!channel) return;
+  channel.publish('playback', { action, time: typeof time === 'number' ? time : null, by: clientId, ts: Date.now() });
+}
+function onPlayback(d){
+  if(!d) return;
+  if(isHost) return;
+  if(d.action === 'play'){ if(typeof d.time === 'number') player.currentTime = d.time; player.play().catch(()=>{}); }
+  if(d.action === 'pause'){ if(typeof d.time === 'number') player.currentTime = d.time; player.pause(); }
+  if(d.action === 'seek'){ if(typeof d.time === 'number') player.currentTime = d.time; }
+}
+
+/* guest requests */
+guestRequestSync.onclick = ()=>{
+  if(!channel) return;
+  channel.publish('playback-request', { type: 'sync', from: clientId });
+};
+
+/* host responds to playback requests (host subscribes earlier to playback-request) */
+function onPlaybackRequest(d){
+  if(!d) return;
+  if(!isHost) return;
+  if(d.type === 'toggle'){ if(player.paused) { player.play(); publishPlayback('play', player.currentTime); } else { player.pause(); publishPlayback('pause', player.currentTime); } }
+  if(d.type === 'sync'){ publishPlayback('seek', player.currentTime); }
+}
+
+/* ---------- Share / Leave ---------- */
+shareInvite.onclick = async ()=>{
+  if(!roomId) return alert('No room to share');
+  const url = location.href.split('?')[0] + '?room=' + encodeURIComponent(roomId) + '&pass=' + encodeURIComponent(passkey || '');
+  try{ await navigator.clipboard.writeText(url); alert('Invite link copied'); }catch(e){ prompt('Invite', url); }
+};
+
+leaveRoom.onclick = ()=>{
+  if(channel){
+    try{ channel.unsubscribe(); }catch(_){}
+    try{ channel.presence.leave(); }catch(_){}
+  }
+  Object.keys(pcs).forEach(k=>{ try{ pcs[k].close(); }catch(_){ } delete pcs[k]; });
+  player.pause(); player.src = ''; player.srcObject = null;
+  isHost=false; roomId=null; passkey=null; hostStream=null; localFileUrl=null;
+  showPage('home'); addSys('Left room');
+};
+
+/* UI helpers */
+function showError(msg){ errorBox.style.display='block'; errorBox.textContent = msg; setTimeout(()=> errorBox.style.display='none', 7000); console.error(msg); }
+function logSys(t){ addSys(t); }
+function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+/* Prefill invite params from URL (invite links) */
+(function prefill(){
+  try{
+    const p = new URLSearchParams(location.search);
+    const r = p.get('room'), pa = p.get('pass');
+    if(r) $('#joinRoomId').value = r;
+    if(pa) $('#joinPass').value = pa;
+  }catch(e){}
+})();
+
+/* tiny helper to query selector inside prefill */
+function $(s){ return document.querySelector(s); }
+
+/* global error catch */
+window.addEventListener('error', e => { showError('Runtime error: ' + (e && e.message)); });
+
+</script>
+</body>
+</html>
